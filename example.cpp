@@ -8,6 +8,7 @@
  * Created by Zebin Xu on 9/27/2017
  */
 #include <iostream>
+#include <vector>
 #include "polygon.h"
 
 #ifdef __APPLE__
@@ -64,7 +65,7 @@ void display(void)
 void my_init()
 {
     glClearColor(1.0, 1.0, 1.0, 1.0);
-    //    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_LINE_SMOOTH);
 }
 
 void reshape(int w, int h)
@@ -111,6 +112,8 @@ void keyboard(unsigned char key, int x, int y) {
             points.push_back(Point2d(points[0]));
         } else {
             points.clear();
+            delete polygon;
+            polygon = NULL;
             drawn = false;
         }
         break;

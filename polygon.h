@@ -9,6 +9,8 @@
 #define _POLYGON_H_
 
 #include <vector>
+#include <limits>
+#include <algorithm>
 
 struct Point2d {
     int x;
