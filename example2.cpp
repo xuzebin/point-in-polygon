@@ -1,15 +1,17 @@
 /**
  * A simple program experimenting the point in polygon algorithm using C++ and OpenGL.
- * example.cpp only allows drawing one polygon (the most simple case).
- * To run: ./Example
+ * example2.cpp supports multiple polygons.
+ * To run: ./Example2
  *
- * 1. Draw a polygon by clicking points inside the window,
+ * 1. Draw each polygon by clicking points inside the window, 
  *   it will connect all the consecutive points as line segments.
- * 2. Press 'd' to close the polygon and start the point in polygon detection.
- *   A blue point will appear and it will follow the cursor, or you can control the point with keyboard i,k,j,l.
- *   Polygon is red if the point is inside of it; Otherwise it's black.
- * 3. Press 'x' to clear the polygon and restart.
- * 
+ * 2. Press 'c' to close the polygon (i.e., finishing drawing the current polygon);
+ *    You can start drawing another poygon using the same way in 1.
+ * 3. Press 'd' if you are done drawing all the polygons, 
+ *    a blue point will appear and it will follow your cursor, or you can control the point using keyboard i,k,j,l.
+ *    If the point is in any of the polygons, that polygon will turn red, otherwise they are black。
+ * 4. Press 'x' to clear the polygons and restart.
+ *
  * Created by Zebin Xu on 9/27/2017
  */
 #include <iostream>
@@ -28,29 +30,38 @@ int height = 600;
 Point2d thepoint(width / 2, height / 2);
 std::vector<Point2d> points;// a list of points of the polygon in order.
 bool drawn = false;//flag indicating if all drawing are done in order to start detection
-Polygon* polygon = NULL;// the class encapsulating the point in polygon algorithm
+Polygon* polygon = NULL;
+std::vector<Polygon*> polygons;//supporting drawing multiple polygons
+
+void draw_polygon(Polygon& polygon) {
+    glBegin(GL_LINE_STRIP);
+    for (auto &point : polygon.points) {
+        glVertex2i(point.x, point.y);
+    }
+    glEnd();
+}
 
 void display(void)
 {
     glClear(GL_COLOR_BUFFER_BIT);
-
     //draw the polygon
     glBegin(GL_LINE_STRIP);
-
-    if (drawn) {
-        if (polygon == NULL) {
-            polygon = new Polygon(points);
-        }
-        if (polygon->inPolygon(thepoint)) {
+    for (auto &polygon : polygons) {
+        if (drawn && polygon->inPolygon(thepoint)) {
             glColor3f(1.0, 0.0, 0.0);
         } else {
             glColor3f(0.0, 0.0, 0.0);
         }
-    } else {
-        glColor3f(0.0, 0.0, 0.0);
+        draw_polygon(*polygon);
     }
-    for (auto point : points) {
-        glVertex2f(point.x, point.y);
+    glEnd();
+
+
+    //render the current drawing polygon (unclosed)
+    glColor3f(0.0, 0.0, 0.0);
+    glBegin(GL_LINE_STRIP);
+    for (auto &point : points) {
+        glVertex2i(point.x, point.y);
     }
     glEnd();
 
@@ -59,7 +70,7 @@ void display(void)
         glPointSize(4.0);
         glColor3f(0.0, 0.0, 1.0);
         glBegin(GL_POINTS);
-        glVertex2f(thepoint.x, thepoint.y);
+        glVertex2i(thepoint.x, thepoint.y);
         glEnd();
     }
 
@@ -111,21 +122,30 @@ void keyboard(unsigned char key, int x, int y) {
         break;
     case 'd':
     case 'D':
-        //finish drawing (close the polygon) or clear the polygon
+        //finish all the drawings (and may close the final polygon is it is not closed yet) 
+        //and start the point in polygons detection
         if (!drawn) {
             drawn = true;
-            //add a final point, same as the starting point, to close the polygon
-            points.push_back(Point2d(points[0]));
+            //if not closed, add a final point, same as the starting point, to close the polygon
+            if (points.size() != 0) {
+                points.push_back(Point2d(points[0]));
+            }
+            polygons.push_back(new Polygon(points));
+            points.clear();
         }
+        break;
+    case 'c':
+    case 'C':
+        //Close the current polygon and start drawing a new polygon
+        points.push_back(Point2d(points[0]));
+        polygons.push_back(new Polygon(points));
+        points.clear();
         break;
     case 'x':
     case 'X':
-        //clear the polygon
-        points.clear();
-        delete polygon;
-        polygon = NULL;
+        //Clear all the polygon(s)
+        polygons.clear();
         drawn = false;
-        break;
     default:
         break;
     }
@@ -137,7 +157,6 @@ void passiveMotion(int x, int y) {
         thepoint.y = height - y;
     }
 }
-
 
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
@@ -153,7 +172,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(width, height);
     glutInitWindowPosition(100, 100);
-    glutCreateWindow("Point in Polygon");
+    glutCreateWindow("Point in Polygons");
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
